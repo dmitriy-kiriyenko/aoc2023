@@ -18,14 +18,14 @@ module Day10
 
       # rightward downward leftward upward
       dirs = [[0,1],[1,0],[0,-1],[-1,0]]
-      happy = ['-7J', '|LJ', '-FL', '|F7'].map(&:chars)
+      happy = ['-7J', '|LJ', '-FL', '|F7']
       s_dirs = []
-      (0..3).each do |i|
+      (0...dirs.size).each do |i|
         pos = dirs[i]
         bx = ax+pos[0]
         by = ay+pos[1]
-        if bx >= 0 && bx <= h && by >= 0 && by <= w && grid[bx][by].in?(happy[i])
-          s_dirs.append(i)
+        if bx >= 0 && bx < h && by >= 0 && by < w && grid[bx][by].in?(happy[i])
+          s_dirs << i
         end
       end
 
