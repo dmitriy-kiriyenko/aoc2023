@@ -2,77 +2,117 @@
 
 module Day10
   class Part2 < BaseSolution
+    extend Memoist
+
     def run
-      ax = nil
-      ay = nil
-      grid = chomped_lines.each_with_index.map do |line, x|
+      start = nil
+      @grid = chomped_lines.each_with_index.map do |line, x|
         line.chars.tap do |row|
-          if y = row.index('S')
-            ax = x
-            ay = y
-          end
+          y = row.index('S')
+          start = [x, y] if y
         end
       end
-      h = grid.size
-      w = grid.first.size
+      @visited_grid = x_range.map { |_| [false] *  y_range.end }
 
-      # rightward downward leftward upward
-      dirs = [[0,1],[1,0],[0,-1],[-1,0]]
-      happy = ['-7J', '|LJ', '-FL', '|F7']
-      s_dirs = []
-      (0...dirs.size).each do |i|
-        pos = dirs[i]
-        bx = ax+pos[0]
-        by = ay+pos[1]
-        if bx >= 0 && bx < h && by >= 0 && by < w && grid[bx][by].in?(happy[i])
-          s_dirs << i
-        end
-      end
+      dirs_from_start = directions.select do |dir, happy|
+        grid(move(start, dir)).in?(happy)
+      end.keys
 
-      # rightward downward leftward upward
-      transform = {
-        [0, '-'] => 0,
-        [0, '7'] => 1,
-        [0, 'J'] => 3,
-        [2, '-'] => 2,
-        [2, 'F'] => 1,
-        [2, 'L'] => 3,
-        [1, '|'] => 1,
-        [1, 'L'] => 0,
-        [1, 'J'] => 2,
-        [3, '|'] => 3,
-        [3, 'F'] => 0,
-        [3, '7'] => 2
-      }
+      cur_dir = dirs_from_start.first
+      cur_pos = move(start, cur_dir)
 
-      cur_dir = s_dirs[0]
-      cx = ax + dirs[cur_dir][0]
-      cy = ay + dirs[cur_dir][1]
-
-      bool_grid = (0...h).map { |_| [false] *  w }
-      bool_grid[ax][ay] = true
-      while [cx, cy] != [ax, ay]
-        bool_grid[cx][cy] = true
-        cur_dir = transform[[cur_dir, grid[cx][cy]]]
-        cx = cx + dirs[cur_dir][0]
-        cy = cy + dirs[cur_dir][1]
+      visit!(start)
+      while cur_pos != start
+        visit!(cur_pos)
+        cur_dir = transform[[cur_dir, grid(cur_pos)]]
+        cur_pos = move(cur_pos, cur_dir)
       end
 
       ct = 0
-      (0...h).each do |i|
-        inn = false
-        (0...w).each do |j|
-          if bool_grid[i][j]
-            if grid[i][j].in?('|JL'.chars) || (grid[i][j] == 'S' && s_dirs.include?(3))
-              inn = !inn
+      x_range.each do |i|
+        within_area = false
+        y_range.each do |j|
+          pos = [i, j]
+          if visited?(pos)
+            if grid(pos).in?('|JL') || (pos == start && dirs_from_start.include?(up))
+              within_area = !within_area
             end
           else
-            ct += (inn ? 1 : 0)
+            ct += 1 if within_area
           end
         end
       end
-
       ct
+    end
+
+    def grid((x, y))
+      if x.in?(x_range) && y.in?(y_range)
+        @grid[x][y]
+      else
+        '.'
+      end
+    end
+
+    def visited?((x, y))
+      @visited_grid[x][y]
+    end
+
+    def visit!((x, y))
+      @visited_grid[x][y] = true
+    end
+
+    memoize def x_range
+      (0...@grid.size)
+    end
+
+    memoize def y_range
+      (0...@grid.first.size)
+    end
+
+    def move((x, y), (dx, dy))
+      [x+dx, y+dy]
+    end
+
+    memoize def directions
+      {
+        right => '-7J',
+        down => '|LJ',
+        left => '-FL',
+        up => '|F7'
+      }
+    end
+
+    memoize def right
+      [0, 1]
+    end
+
+    memoize def down
+      [1, 0]
+    end
+
+    memoize def left
+      [0, -1]
+    end
+
+    memoize def up
+      [-1, 0]
+    end
+
+    memoize def transform
+      {
+        [right, '-'] => right,
+        [right, '7'] => down,
+        [right, 'J'] => up,
+        [left, '-'] => left,
+        [left, 'F'] => down,
+        [left, 'L'] => up,
+        [down, '|'] => down,
+        [down, 'L'] => right,
+        [down, 'J'] => left,
+        [up, '|'] => up,
+        [up, 'F'] => right,
+        [up, '7'] => left
+      }
     end
 
     def self.expected_result
